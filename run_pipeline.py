@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore", message=r"Could not find the number of physica
 
 import numpy as np
 import pandas as pd
-from joblib import load
+from joblib import load, dump
 
 from src.evaluate import (
     build_error_analysis,
@@ -214,9 +214,18 @@ def build_run_identity(inputs: InputPaths) -> tuple[str, str]:
 
 
 def read_and_validate_inputs(paths: InputPaths) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
-    development = pd.read_csv(paths.development)
-    validation = pd.read_csv(paths.validation)
-    template = pd.read_csv(paths.template)
+    development = pd.read_csv(
+        paths.development,
+        dtype={"load_id": "string"},
+    )
+    validation = pd.read_csv(
+        paths.validation,
+        dtype={"load_id": "string"},
+    )
+    template = pd.read_csv(
+        paths.template,
+        dtype={"load_id": "string"},
+    )
     december = pd.read_csv(paths.december_template or paths.december)
     target_candidates = [column for column in development.columns if column not in validation.columns]
     if len(target_candidates) != 1:
@@ -890,6 +899,21 @@ def main() -> None:
     save_rate_model(final_model, final_model_path)
     if model_family_for_model(load(final_model_path)) != selected_candidate.model_family:
         raise RuntimeError("Saved final model family does not match the selected candidate")
+
+    # Create an inference bundle containing preprocessor, columns and the fitted model
+    final_bundle_path = MODELS / "final_inference_bundle.joblib"
+    dump(
+        {
+            "feature_builder": full_builder,
+            "feature_columns": selected_columns,
+            "model": final_model,
+            "target": target,
+            "model_name": selected_name,
+            "model_family": selected_candidate.model_family,
+        },
+        final_bundle_path,
+    )
+
     validation_features = full_builder.transform(validation, selected_columns)
     validation_predictions = final_model.predict(validation_features)
     by_id = pd.Series(validation_predictions, index=validation["load_id"].astype(str), name="predicted_rate")
@@ -919,6 +943,21 @@ def main() -> None:
     save_rate_model(december_model, december_model_path)
     if model_family_for_model(load(december_model_path)) != selected_december_candidate.model_family:
         raise RuntimeError("Saved December model family does not match the selected candidate")
+
+    # Optional: emit a December-compatible inference bundle as well
+    december_bundle_path = MODELS / "december_inference_bundle.joblib"
+    dump(
+        {
+            "feature_builder": full_builder,
+            "feature_columns": december_columns,
+            "model": december_model,
+            "target": target,
+            "model_name": selected_december_candidate.name,
+            "model_family": selected_december_candidate.model_family,
+        },
+        december_bundle_path,
+    )
+
     december_features = full_builder.transform(december, december_columns)
     completed_december = december.copy()
     completed_december["predicted_rate"] = december_model.predict(december_features)
@@ -1076,7 +1115,9 @@ def main() -> None:
         ARTIFACTS / "feature_importance.csv",
         ARTIFACTS / "scorer_output.txt",
         final_model_path,
+        final_bundle_path,
         december_model_path,
+        december_bundle_path,
         scorer_chart,
         *generated_figures,
     ]

@@ -71,7 +71,7 @@
     "delivery_lon": "float64",
     "distance": "float64",
     "equipment": "object",
-    "load_id": "object",
+    "load_id": "string",
     "market_index": "float64",
     "pickup": "object",
     "pickup_lat": "float64",
