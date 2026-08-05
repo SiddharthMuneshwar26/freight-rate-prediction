@@ -1,0 +1,53 @@
+﻿# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Notebook and test caches
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Generated logs
+*.log
+artifacts/pipeline.log
+
+# Generated model binaries
+models/
+*.joblib
+*.pkl
+
+# Local reproducibility snapshots
+reproducibility/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+directory_structure.txt
+
+# Private notes
+reports/loom_script.md
+
+# Private walkthrough notes
+reports/loom_script.md

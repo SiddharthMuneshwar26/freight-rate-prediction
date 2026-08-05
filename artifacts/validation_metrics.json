@@ -1,0 +1,284 @@
+{
+  "baseline_metrics": {
+    "equipment_median_rpm": {
+      "mae": 229.09657316845033,
+      "r2": 0.8068628254206316,
+      "rmse": 670.6599545300177,
+      "smape": 9.88060459760673
+    },
+    "global_median": {
+      "mae": 1148.923725716686,
+      "r2": -0.057649581634046765,
+      "rmse": 1569.4241791607553,
+      "smape": 50.70013158058693
+    }
+  },
+  "candidate_configuration_policy": "The common feature list is chosen by fixed two-family proxy configurations on training-only rows. Every eligible outer family, feature list, parameter set, and CatBoost iteration count is then frozen before outer-holdout scoring; no candidate is adapted and rescored on that holdout.",
+  "candidate_holdout_metrics": {
+    "catboost_rate_per_mile": {
+      "mae": 141.0683216273622,
+      "r2": 0.8224117872910891,
+      "rmse": 643.0970338123212,
+      "smape": 5.2155157643836585
+    },
+    "hgb_compact": {
+      "mae": 129.511954241217,
+      "r2": 0.8239424448912736,
+      "rmse": 640.3195644495423,
+      "smape": 4.527253466777357
+    },
+    "hgb_smoother": {
+      "mae": 130.2605469433363,
+      "r2": 0.8239002537954365,
+      "rmse": 640.396284149944,
+      "smape": 4.5949388606193144
+    }
+  },
+  "canonical_selections": {
+    "december": {
+      "family": "HistGradientBoostingRegressor",
+      "feature_set": "december_basic",
+      "mae": 108.7836047385515,
+      "mae_text": "108.7836047385515",
+      "model": "december_hgb__december_basic",
+      "signature": "DECEMBER|model=december_hgb__december_basic|family=HistGradientBoostingRegressor|feature_set=december_basic|mae=108.7836047385515"
+    },
+    "main": {
+      "family": "HistGradientBoostingRegressor",
+      "feature_set": "basic_plus_geographic",
+      "mae": 129.511954241217,
+      "mae_text": "129.511954241217",
+      "model": "hgb_compact",
+      "signature": "MAIN|model=hgb_compact|family=HistGradientBoostingRegressor|feature_set=basic_plus_geographic|mae=129.511954241217"
+    }
+  },
+  "catboost_iteration_learning": {
+    "metric": "distance-weighted rate-per-mile MAE (proportional to posted-rate MAE)",
+    "outer_holdout_used": false,
+    "preprocessing_fit_scope": "training-only inner-training rows",
+    "selected_main_iterations": 165,
+    "split": {
+      "horizon_days": 61,
+      "strategy": "training-only blocked chronological split",
+      "training_date_end": "2025-07-01",
+      "training_date_start": "2025-01-01",
+      "training_rows": 28941,
+      "validation_date_end": "2025-08-31",
+      "validation_date_start": "2025-07-02",
+      "validation_rows": 9536
+    }
+  },
+  "december_best_iteration": null,
+  "december_feature_set": "december_basic",
+  "december_holdout_metrics": {
+    "mae": 108.7836047385515,
+    "r2": 0.8271757547450681,
+    "rmse": 634.412560358469,
+    "smape": 3.8937846065888815
+  },
+  "december_method": "december_basic",
+  "december_model": "december_hgb__december_basic",
+  "december_model_family": "HistGradientBoostingRegressor",
+  "december_model_filename": "models\\december_rate_model.joblib",
+  "december_parameters": {
+    "l2_regularization": 3.0,
+    "learning_rate": 0.06,
+    "max_iter": 250,
+    "max_leaf_nodes": 15,
+    "min_samples_leaf": 30
+  },
+  "december_prediction_summary": {
+    "max": 837.507412648332,
+    "mean": 827.411764813973,
+    "min": 815.7389717103166,
+    "rows": 31
+  },
+  "deterministic_execution": {
+    "candidate_iteration_order": "sorted by candidate or feature-set name",
+    "row_order": "stable date then load_id mergesort",
+    "thread_limits": {
+      "BLIS_NUM_THREADS": "1",
+      "LOKY_MAX_CPU_COUNT": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "tie_break_rule": "exact MAE ties are resolved by candidate name",
+    "versions": {
+      "catboost": "1.2.10",
+      "joblib": "1.5.3",
+      "matplotlib": "3.10.8",
+      "numpy": "2.2.4",
+      "pandas": "2.2.3",
+      "python": "3.13.2",
+      "reportlab": "4.5.1",
+      "scikit_learn": "1.8.0"
+    }
+  },
+  "eligible_candidates": [
+    "hgb_compact",
+    "hgb_smoother",
+    "catboost_rate_per_mile"
+  ],
+  "feature_screening": {
+    "artifact": "artifacts\\feature_ablation.csv",
+    "method": "family-neutral common-feature screening",
+    "model_families": [
+      "HistGradientBoostingRegressor",
+      "CatBoostRegressor"
+    ],
+    "outer_holdout_used": false,
+    "preprocessing_fit_scope": "training-only inner-training rows",
+    "screening_parameters": {
+      "CatBoostRegressor": {
+        "depth": 6,
+        "iterations": 600,
+        "l2_leaf_reg": 6.0,
+        "learning_rate": 0.06
+      },
+      "HistGradientBoostingRegressor": {
+        "l2_regularization": 3.0,
+        "learning_rate": 0.06,
+        "max_iter": 250,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 30
+      }
+    },
+    "selected_feature_set": "basic_plus_geographic",
+    "selected_score": 127.30198861810211,
+    "selection_metric": "unweighted arithmetic mean of per-family posted-rate MAE",
+    "selection_rule": "Lowest finite mean family MAE on the training-only chronological validation window; exact ties are broken by feature-set name.",
+    "split": {
+      "horizon_days": 61,
+      "strategy": "training-only blocked chronological split",
+      "training_date_end": "2025-07-01",
+      "training_date_start": "2025-01-01",
+      "training_rows": 28941,
+      "validation_date_end": "2025-08-31",
+      "validation_date_start": "2025-07-02",
+      "validation_rows": 9536
+    }
+  },
+  "final_model_filename": "models\\final_rate_model.joblib",
+  "metrics": {
+    "mae": 129.511954241217,
+    "r2": 0.8239424448912736,
+    "rmse": 640.3195644495423,
+    "smape": 4.527253466777357
+  },
+  "minimum_eligible_mae": 129.511954241217,
+  "primary_metric": "mae",
+  "random_seed": 42,
+  "run_id": "submission-c27c7409c45454ca",
+  "scorer_output": [
+    "Validated 12,000 final predictions.",
+    "Validated 31 fixed December predictions.",
+    "Created chart: scorer_results\\candidate_december.png",
+    "Final validation metrics are calculated by Spotter after submission."
+  ],
+  "scorer_passed": true,
+  "selected_best_iteration": null,
+  "selected_categorical_columns": [
+    "equipment",
+    "distance_band"
+  ],
+  "selected_feature_columns": [
+    "distance",
+    "weight",
+    "weight_missing",
+    "weight_sign_corrected",
+    "market_index",
+    "market_index_missing",
+    "quote_signal",
+    "equipment",
+    "pickup_lat",
+    "pickup_lon",
+    "delivery_lat",
+    "delivery_lon",
+    "haversine_distance",
+    "distance_haversine_difference",
+    "distance_haversine_ratio",
+    "latitude_difference",
+    "longitude_difference",
+    "absolute_latitude_difference",
+    "absolute_longitude_difference",
+    "midpoint_latitude",
+    "midpoint_longitude",
+    "bearing_sin",
+    "bearing_cos",
+    "distance_band"
+  ],
+  "selected_feature_set": "basic_plus_geographic",
+  "selected_model": "hgb_compact",
+  "selected_model_family": "HistGradientBoostingRegressor",
+  "selected_parameters": {
+    "l2_regularization": 3.0,
+    "learning_rate": 0.06,
+    "max_iter": 250,
+    "max_leaf_nodes": 15,
+    "min_samples_leaf": 30
+  },
+  "selection_rule": "Lowest finite MAE on the common chronological holdout among all eligible candidates; exact-equality ties are broken deterministically by candidate name.",
+  "source_fingerprint_sha256": "c27c7409c45454ca073e90b7b4eea174ba58cd160cbd1700e182525d129eb771",
+  "split": {
+    "holdout_date_end": "2025-10-31",
+    "holdout_date_start": "2025-09-01",
+    "holdout_rows": 9523,
+    "holdout_unseen_city_rows": 0,
+    "holdout_unseen_route_rows": 21,
+    "limitation": "The holdout has no new cities, while final validation contains new cities.",
+    "strategy": "blocked chronological holdout matching the 61-day final horizon",
+    "training_date_end": "2025-08-31",
+    "training_date_start": "2025-01-01",
+    "training_rows": 38477
+  },
+  "temporal_stability": [
+    {
+      "evaluation_role": "post_selection_temporal_diagnostic",
+      "feature_set": "basic_plus_geographic",
+      "holdout_month": "2025-08",
+      "holdout_rows": 4759,
+      "mae": 157.2911545387647,
+      "model": "hgb_compact",
+      "model_family": "HistGradientBoostingRegressor",
+      "r2": 0.8187922561220387,
+      "rmse": 627.8107938095437,
+      "smape": 7.5762862619999165,
+      "training_rows": 33718
+    },
+    {
+      "evaluation_role": "post_selection_temporal_diagnostic",
+      "feature_set": "basic_plus_geographic",
+      "holdout_month": "2025-09",
+      "holdout_rows": 4670,
+      "mae": 128.97926957519957,
+      "model": "hgb_compact",
+      "model_family": "HistGradientBoostingRegressor",
+      "r2": 0.8324292703181724,
+      "rmse": 623.5775476333774,
+      "smape": 4.352223917506106,
+      "training_rows": 38477
+    },
+    {
+      "evaluation_role": "post_selection_temporal_diagnostic",
+      "feature_set": "basic_plus_geographic",
+      "holdout_month": "2025-10",
+      "holdout_rows": 4853,
+      "mae": 125.26898459298856,
+      "model": "hgb_compact",
+      "model_family": "HistGradientBoostingRegressor",
+      "r2": 0.8166675741476603,
+      "rmse": 654.4871840593896,
+      "smape": 4.539371679961227,
+      "training_rows": 43147
+    }
+  ],
+  "validation_prediction_summary": {
+    "max": 6736.371033424447,
+    "mean": 2324.8074821377395,
+    "min": 171.7121589162009,
+    "rows": 12000
+  }
+}

@@ -1,0 +1,4 @@
+holdout_month,evaluation_role,model,model_family,feature_set,training_rows,holdout_rows,mae,rmse,r2,smape
+2025-08,post_selection_temporal_diagnostic,hgb_compact,HistGradientBoostingRegressor,basic_plus_geographic,33718,4759,157.2911545387647,627.8107938095437,0.8187922561220387,7.5762862619999165
+2025-09,post_selection_temporal_diagnostic,hgb_compact,HistGradientBoostingRegressor,basic_plus_geographic,38477,4670,128.97926957519957,623.5775476333774,0.8324292703181724,4.352223917506106
+2025-10,post_selection_temporal_diagnostic,hgb_compact,HistGradientBoostingRegressor,basic_plus_geographic,43147,4853,125.26898459298856,654.4871840593896,0.8166675741476603,4.539371679961227
