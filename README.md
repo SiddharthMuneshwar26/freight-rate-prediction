@@ -17,22 +17,17 @@ Originally developed from a time-constrained ML engineering brief, the repositor
 - A blocked chronological holdout that mirrors the final two-month forecast horizon
 - Training-only feature screening across both **HistGradientBoostingRegressor** and **CatBoostRegressor**
 - Separate reduced-schema model selection for the fixed December route series
-- Automated data audits, comparison tables, error analysis, scorer execution
+- Automated data audits, comparison tables, error analysis, prediction generation, and scorer execution
 - Deterministic candidate ordering, stable row sorting, fixed seeds, and machine-readable-artifact consistency checks
 
-### Canonical result
+### Chronological validation results
 
-| Output | Selected model | Feature set | Holdout MAE |
+| Output | Selected model | Feature set | Validation MAE |
 |---|---|---|---:|
 | Main validation | `hgb_smoother` | `basic_plus_geographic` | **$129.51** |
-| December series | `december_hgb__december_basic` | `december_basic` | **$109.24** |
+| December scenario | `december_hgb__december_basic` | `december_basic` | **$109.24** |
 
-**Run ID:** `submission-552834dc5eb224b5`
-
-```text
-MAIN|model=hgb_smoother|family=HistGradientBoostingRegressor|feature_set=basic_plus_geographic|mae=129.50819581944845
-DECEMBER|model=december_hgb__december_basic|family=HistGradientBoostingRegressor|feature_set=december_basic|mae=109.24400618834804
-```
+The values above are chronological model-selection validation scores. They are not metrics from the unlabeled final-validation set.
 
 ---
 
@@ -102,6 +97,7 @@ Train a leakage-safe freight-rate regressor on the supplied labeled data, predic
 - Missing development values occur in `weight` and `market_index`
 - Impossible non-positive weights are treated as missing and explicitly flagged
 - Valid target extremes are retained rather than silently removed
+- `load_id` is read explicitly as text so its exact representation is preserved
 
 ---
 
@@ -130,7 +126,7 @@ The outer holdout is used only for:
 2. model diagnostics,
 3. error analysis.
 
-It is not used to adapt a candidate and then rescore it.
+It is not used to adapt a candidate and then rescore it. Because the same outer holdout is used for final candidate selection and reporting, the resulting MAE is described as **chronological validation performance**, not untouched test performance.
 
 ### Selection rule
 
@@ -151,7 +147,7 @@ Feature groups evaluated include:
 - compact geographic calculations
 - defensible distance, weight, and market interactions
 
-`load_id`, `posted_rate`, and `predicted_rate` are never model features.
+`load_id`, `posted_rate`, and `predicted_rate` are never model features. `load_id` is loaded as text and is used only for integrity checks, joins, and output ordering, preserving values such as identifiers with leading zeros.
 
 Historical target encodings were deliberately excluded because sparse routes and chronological leakage risk outweighed their potential value.
 
@@ -190,13 +186,16 @@ Histogram gradient boosting uses an ordinal categorical encoder fitted only with
 | R² | 0.8240 |
 | sMAPE | 4.545% |
 
-The generated model is saved locally to:
+### Saved inference artifacts
 
 ```text
 models/final_rate_model.joblib
+models/final_inference_bundle.joblib
 ```
 
-The `models/` directory may be excluded from Git because the estimators are reproducible from the tracked code and data.
+`final_inference_bundle.joblib` stores the fitted feature builder, selected feature columns, trained estimator, target name, and model metadata together. This allows new raw freight-load records to be transformed with the same learned preprocessing used during training before prediction.
+
+The `models/` directory is generated locally and may be excluded from Git because the artifacts are reproducible from the tracked code and data.
 
 ---
 
@@ -221,6 +220,9 @@ Holdout MAE: $109.24
 ```
 
 It uses only fields available in the fixed input plus known date features. Market and quote signals are not fabricated.
+
+> **Why a separate December model?**  
+> The supplied December scenario omits `market_index`, `quote_signal`, and coordinate columns available to the main validation model. A separately validated reduced-schema model is therefore used only for the required December scenario chart. It is selected using the same chronological holdout and MAE criterion. The December chart should not be interpreted as output from the main model used for the 12,000 validation predictions.
 
 Generated model path:
 
@@ -278,8 +280,12 @@ Full results:
 │   ├── temporal_stability.csv
 │   ├── validation_metrics.json
 │   └── scorer_output.txt
+├── models/                         # generated locally; Git-ignored
+│   ├── final_rate_model.joblib
+│   ├── final_inference_bundle.joblib
+│   └── december_rate_model.joblib
 ├── reports/
-│   ├── assessment_report.pdf
+│   ├── assessment_report.pdf          # static technical report
 │   └── figures/
 │       ├── distribution_shift.png
 │       ├── feature_importance.png
@@ -326,7 +332,9 @@ The pipeline:
 7. generates both required prediction outputs,
 8. validates their schemas,
 9. executes the unmodified scorer,
-10. generates predictions, metrics, figures, scorer outputs, and consistency checks for machine-readable artifacts.
+10. generates predictions, models, metrics, figures, scorer outputs, and consistency checks for machine-readable artifacts.
+
+`README.md` and `reports/assessment_report.pdf` are static documentation files. The pipeline verifies that they exist but does not generate or overwrite them.
 
 ---
 
@@ -358,16 +366,19 @@ Local performance values in this repository come from the chronological developm
 
 ---
 
-## Generated outputs
+## Outputs and documentation
 
-| Artifact | Purpose |
-|---|---|
-| [`validation_predictions.csv`](validation_predictions.csv) | Final 12,000-row prediction output |
-| [`december-chart-inputs.csv`](december-chart-inputs.csv) | Completed fixed December input |
-| [`artifacts/validation_metrics.json`](artifacts/validation_metrics.json) | Canonical model and run metadata |
-| [`artifacts/model_comparison.csv`](artifacts/model_comparison.csv) | Main candidate comparison |
-| [`artifacts/error_analysis.csv`](artifacts/error_analysis.csv) | Segment-level error analysis |
-| [`scorer_results/candidate_december.png`](scorer_results/candidate_december.png) | Fixed December prediction chart |
+| Artifact | Type | Purpose |
+|---|---|---|
+| [`validation_predictions.csv`](validation_predictions.csv) | Generated | Final 12,000-row prediction output |
+| [`december-chart-inputs.csv`](december-chart-inputs.csv) | Generated | Completed fixed December scenario |
+| [`artifacts/validation_metrics.json`](artifacts/validation_metrics.json) | Generated | Canonical model, split, metrics, and run metadata |
+| [`artifacts/model_comparison.csv`](artifacts/model_comparison.csv) | Generated | Main candidate comparison |
+| [`artifacts/december_model_comparison.csv`](artifacts/december_model_comparison.csv) | Generated | Reduced-schema December candidate comparison |
+| [`artifacts/error_analysis.csv`](artifacts/error_analysis.csv) | Generated | Segment-level chronological validation analysis |
+| [`scorer_results/candidate_december.png`](scorer_results/candidate_december.png) | Generated | Fixed December prediction chart |
+| `models/final_inference_bundle.joblib` | Generated locally | Fitted preprocessing and main-model inference bundle |
+| [`reports/assessment_report.pdf`](reports/assessment_report.pdf) | Static documentation | Technical report containing methodology and the December chart |
 
 ### Original project brief
 
@@ -388,13 +399,11 @@ Local performance values in this repository come from the chronological developm
 - Supplied scorer checksum verification
 - Pristine December-template checksum verification
 - Machine-readable metrics and comparison-table consistency checks
-- Content-addressed run identity
-
-The current canonical run is:
-
-```text
-submission-552834dc5eb224b5
-```
+- `load_id` loaded explicitly as text
+- Complete preprocessing-and-model inference bundle
+- Static README checksum verification during pipeline execution
+- `PYTHONHASHSEED=42` supplied before Python starts through the documented run command
+- Content-addressed run identity stored in generated JSON artifacts rather than hardcoded in this README
 
 ---
 
@@ -402,11 +411,12 @@ submission-552834dc5eb224b5
 
 - The selected feature list depends on one inner chronological window and two fixed proxy families.
 - The reported outer-holdout MAE is a model-selection estimate, not an unbiased post-selection test score.
-- Final validation includes eight cities absent from development, so unseen-city performance remains uncertain.
+- Final validation includes eight cities absent from development, while the chronological holdout contains no entirely unseen cities; cold-start city performance therefore remains uncertain.
 - Market index shows the largest development-to-validation shift.
 - Chronological validation reduces future-regime risk but cannot remove it.
 - Coordinates appear obfuscated, so supplied distance is treated as authoritative.
 - Sparse extreme rates dominate RMSE and are retained rather than silently removed.
+- The December chart uses a separately validated reduced-schema scenario model and should not be interpreted as output from the main validation model.
 - No external data, credentials, or private APIs are used.
 
 ---
@@ -415,5 +425,6 @@ submission-552834dc5eb224b5
 
 - [Technical report](reports/assessment_report.pdf)
 - [Scorer output](artifacts/scorer_output.txt)
+- [Original project brief](freight-rate-ml-assessment.pdf)
 
-Video walkthrough: [Add public Loom link here]
+**Video walkthrough:** [Add public Loom link here]
