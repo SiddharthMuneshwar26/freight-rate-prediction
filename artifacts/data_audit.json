@@ -1,0 +1,130 @@
+{
+  "cleaning_decisions": [
+    "Canonicalise categorical whitespace/case; use Unknown for missing categories.",
+    "Treat impossible non-positive weights as missing and retain a problem flag.",
+    "Retain numeric missing values and explicit missing/problem flags; all learned preprocessing is fitted only on the training partition.",
+    "Keep valid extreme freight rates and distance/weight boundary values; the absolute-error objective is robust to sparse label anomalies.",
+    "Fit any category encodings and optional frequency maps on training rows only; each model family handles unseen categories without holdout-fitted mappings."
+  ],
+  "columns": {
+    "development": [
+      "load_id",
+      "pickup",
+      "delivery",
+      "pickup_lat",
+      "pickup_lon",
+      "delivery_lat",
+      "delivery_lon",
+      "distance",
+      "equipment",
+      "weight",
+      "date",
+      "market_index",
+      "quote_signal",
+      "posted_rate"
+    ],
+    "validation": [
+      "load_id",
+      "pickup",
+      "delivery",
+      "pickup_lat",
+      "pickup_lon",
+      "delivery_lat",
+      "delivery_lon",
+      "distance",
+      "equipment",
+      "weight",
+      "date",
+      "market_index",
+      "quote_signal"
+    ]
+  },
+  "coordinates": {
+    "distance_haversine_correlation": 0.9995349596237127,
+    "invalid_latitude_rows": 0,
+    "invalid_longitude_rows": 0,
+    "median_distance_haversine_ratio": 1.1822423343483313,
+    "note": "Coordinates are internally consistent but appear synthetic; supplied distance remains authoritative."
+  },
+  "date_ranges": {
+    "development": [
+      "2025-01-01",
+      "2025-10-31"
+    ],
+    "validation": [
+      "2025-11-01",
+      "2025-12-31"
+    ]
+  },
+  "december_shape": [
+    31,
+    7
+  ],
+  "development_shape": [
+    48000,
+    14
+  ],
+  "dtypes": {
+    "date": "object",
+    "delivery": "object",
+    "delivery_lat": "float64",
+    "delivery_lon": "float64",
+    "distance": "float64",
+    "equipment": "object",
+    "load_id": "object",
+    "market_index": "float64",
+    "pickup": "object",
+    "pickup_lat": "float64",
+    "pickup_lon": "float64",
+    "posted_rate": "float64",
+    "quote_signal": "float64",
+    "weight": "float64"
+  },
+  "duplicate_ids": {
+    "development": 0,
+    "validation": 0
+  },
+  "duplicate_rows": {
+    "development": 0,
+    "validation": 0
+  },
+  "equipment_categories": {
+    "Dry Van": 27202,
+    "Flatbed": 8753,
+    "Reefer": 12045
+  },
+  "invalid_dates": {
+    "development": 0,
+    "validation": 0
+  },
+  "negative_weight_rows": {
+    "development": 292,
+    "validation": 145
+  },
+  "routes": {
+    "development_unique": 4014,
+    "frequency_below_5": 537,
+    "validation_rare_seen_rows": 2692,
+    "validation_unseen_rows": 1461
+  },
+  "target": "posted_rate",
+  "target_distribution": {
+    "count": 48000,
+    "max": 25533.0,
+    "mean": 2373.980682291666,
+    "median": 2030.76,
+    "min": 57.22,
+    "p05": 599.7385,
+    "p95": 4953.7665,
+    "p99": 5972.834000000003,
+    "skew": 1.9023948792201815,
+    "std": 1486.4932447622944
+  },
+  "unique_delivery_cities": 64,
+  "unique_pickup_cities": 64,
+  "validation_shape": [
+    12000,
+    13
+  ],
+  "validation_strictly_later": true
+}

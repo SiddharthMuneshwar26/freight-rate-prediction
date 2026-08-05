@@ -1,0 +1,6 @@
+model,feature_set,mae,rmse,r2,smape,model_family,parameters,best_iteration,eligible,selected
+hgb_compact,basic_plus_geographic,129.511954241217,640.3195644495423,0.8239424448912736,4.527253466777357,HistGradientBoostingRegressor,"{""l2_regularization"": 3.0, ""learning_rate"": 0.06, ""max_iter"": 250, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 30}",,True,True
+hgb_smoother,basic_plus_geographic,130.2605469433363,640.396284149944,0.8239002537954365,4.5949388606193144,HistGradientBoostingRegressor,"{""l2_regularization"": 5.0, ""learning_rate"": 0.05, ""max_iter"": 300, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 45}",,True,False
+catboost_rate_per_mile,basic_plus_geographic,141.0683216273622,643.0970338123212,0.8224117872910891,5.2155157643836585,CatBoostRegressor,"{""depth"": 6, ""iterations"": 165, ""l2_leaf_reg"": 6.0, ""learning_rate"": 0.06}",165.0,True,False
+equipment_median_rpm,distance + equipment,229.09657316845033,670.6599545300177,0.8068628254206316,9.88060459760673,Baseline,{},,False,False
+global_median,target_only,1148.923725716686,1569.4241791607553,-0.057649581634046765,50.70013158058693,Baseline,{},,False,False

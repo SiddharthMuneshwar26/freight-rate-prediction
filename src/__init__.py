@@ -1,0 +1,2 @@
+"""Freight-rate assessment pipeline."""
+

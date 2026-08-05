@@ -1,0 +1,4 @@
+column,development_unique,validation_unique,unseen_categories,unseen_values,validation_rows_with_unseen
+pickup,64,72,8,Allentown | Charlotte | Chicago | Jackson | Knoxville | Laredo | Norfolk | San Diego,725
+delivery,64,72,8,Allentown | Charlotte | Chicago | Jackson | Knoxville | Laredo | Norfolk | San Diego,722
+equipment,3,3,0,,0
