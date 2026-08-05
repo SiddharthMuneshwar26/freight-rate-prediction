@@ -113,7 +113,6 @@
       "numpy": "2.2.4",
       "pandas": "2.2.3",
       "python": "3.13.2",
-      "reportlab": "4.5.1",
       "scikit_learn": "1.8.0"
     }
   },
@@ -171,7 +170,7 @@
   "minimum_eligible_mae": 129.511954241217,
   "primary_metric": "mae",
   "random_seed": 42,
-  "run_id": "submission-c27c7409c45454ca",
+  "run_id": "submission-552834dc5eb224b5",
   "scorer_output": [
     "Validated 12,000 final predictions.",
     "Validated 31 fixed December predictions.",
@@ -221,7 +220,7 @@
     "min_samples_leaf": 30
   },
   "selection_rule": "Lowest finite MAE on the common chronological holdout among all eligible candidates; exact-equality ties are broken deterministically by candidate name.",
-  "source_fingerprint_sha256": "c27c7409c45454ca073e90b7b4eea174ba58cd160cbd1700e182525d129eb771",
+  "source_fingerprint_sha256": "552834dc5eb224b507cbab4bc2e4d8f66c165629f6080c481563152cadffe910",
   "split": {
     "holdout_date_end": "2025-10-31",
     "holdout_date_start": "2025-09-01",

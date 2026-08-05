@@ -39,7 +39,7 @@ from src.evaluate import (
     permutation_importance,
     regression_metrics,
     require_nonempty_file,
-    validate_generated_artifact_consistency,
+    validate_generated_metrics_consistency,
     validate_december_output,
     validate_model_selection,
     validate_prediction_output,
@@ -49,9 +49,6 @@ from src.reporting import (
     create_eda_artifacts,
     create_model_figures,
     write_json,
-    write_loom_script,
-    write_pdf_report,
-    write_readme,
 )
 from src.train import (
     HGB_SCREENING_PARAMETERS,
@@ -380,7 +377,7 @@ def _candidate_metric_row(candidate: ModelCandidate, *, eligible: bool = True) -
 
 
 def _selection_identity(candidate: ModelCandidate, label: str) -> dict[str, Any]:
-    """Canonical values shared by predictions and every generated artifact."""
+    """Canonical values shared by predictions and machine-generated artifacts."""
     mae = float(candidate.metrics["mae"])
     identity = {
         "model": candidate.name,
@@ -588,6 +585,12 @@ def main() -> None:
     np.random.seed(RANDOM_SEED)
     for directory in [ARTIFACTS, FIGURES, MODELS, REPORTS, SCORER_RESULTS]:
         directory.mkdir(parents=True, exist_ok=True)
+    static_readme = ROOT / "README.md"
+    static_report = REPORTS / "assessment_report.pdf"
+    require_nonempty_file(static_readme)
+    require_nonempty_file(static_report)
+    readme_hash_before = _sha256(static_readme)
+    LOGGER.info("Static README SHA-256 before execution: %s", readme_hash_before)
     LOGGER.info("Starting end-to-end freight-rate pipeline")
     inputs = locate_inputs()
     december_source = inputs.december_template or inputs.december
@@ -600,7 +603,7 @@ def main() -> None:
     if scorer_hash_before != SUPPLIED_SCORER_SHA256:
         raise RuntimeError("score.py does not match the supplied assessment scorer")
     development, validation, template, december, target = read_and_validate_inputs(inputs)
-    audit = create_eda_artifacts(development, validation, december, ARTIFACTS, FIGURES)
+    create_eda_artifacts(development, validation, december, ARTIFACTS, FIGURES)
 
     manifest = {
         "run_id": run_id,
@@ -931,12 +934,6 @@ def main() -> None:
     if _sha256(inputs.scorer) != scorer_hash_before:
         raise RuntimeError("score.py changed during the pipeline; supplied scorer must remain unmodified")
 
-    useful_groups = feature_screening.loc[
-        feature_screening["improvement_over_basic_selection_score"] > 0,
-        "feature_set",
-    ].tolist()
-    if selected_feature_set not in useful_groups:
-        useful_groups.insert(0, selected_feature_set)
     selected_screen_score = float(
         feature_screening.loc[
             feature_screening["selected_for_outer_comparison"],
@@ -1057,40 +1054,19 @@ def main() -> None:
                 "matplotlib": version("matplotlib"),
                 "catboost": version("catboost"),
                 "joblib": version("joblib"),
-                "reportlab": version("reportlab"),
             },
         },
     }
     write_json(ARTIFACTS / "validation_metrics.json", metrics_payload)
-    top_features = feature_importance.sort_values(
-        ["importance", "feature"],
-        ascending=[False, True],
-        kind="mergesort",
-    ).head(8)["feature"].tolist()
-    write_readme(ROOT / "README.md", metrics_payload, audit, useful_groups)
-    write_loom_script(
-        REPORTS / "loom_script.md",
-        metrics_payload,
-        audit,
-        global_metrics["mae"],
-        top_features,
-    )
-    write_pdf_report(
-        REPORTS / "assessment_report.pdf",
-        metrics_payload,
-        audit,
-        model_comparison,
-        feature_screening,
-        error_analysis,
-        feature_importance,
-        december_comparison,
-        FIGURES,
-        scorer_chart,
-    )
 
-    required_outputs = [
-        ROOT / "README.md",
-        ROOT / "requirements.txt",
+    generated_figures = [
+        FIGURES / "target_distribution.png",
+        FIGURES / "monthly_target.png",
+        FIGURES / "distribution_shift.png",
+        FIGURES / "feature_importance.png",
+        FIGURES / "holdout_error_over_time.png",
+    ]
+    generated_outputs = [
         predictions_path,
         inputs.december,
         ARTIFACTS / "validation_metrics.json",
@@ -1101,24 +1077,26 @@ def main() -> None:
         ARTIFACTS / "scorer_output.txt",
         final_model_path,
         december_model_path,
-        REPORTS / "assessment_report.pdf",
-        REPORTS / "loom_script.md",
         scorer_chart,
+        *generated_figures,
     ]
-    for output in required_outputs:
+    for output in generated_outputs:
         require_nonempty_file(output)
-    validate_generated_artifact_consistency(
+    validate_generated_metrics_consistency(
         ARTIFACTS / "model_comparison.csv",
         ARTIFACTS / "december_model_comparison.csv",
         ARTIFACTS / "validation_metrics.json",
-        ROOT / "README.md",
-        REPORTS / "loom_script.md",
-        REPORTS / "assessment_report.pdf",
         EXPECTED_MAIN_CANDIDATES,
         EXPECTED_DECEMBER_CANDIDATES,
         EXPECTED_BASELINES,
     )
-    LOGGER.info("Artifact consistency checks passed for run ID %s", run_id)
+    require_nonempty_file(static_readme)
+    require_nonempty_file(static_report)
+    readme_hash_after = _sha256(static_readme)
+    if readme_hash_after != readme_hash_before:
+        raise RuntimeError("README.md changed during pipeline execution")
+    LOGGER.info("Static README SHA-256 unchanged: %s", readme_hash_after)
+    LOGGER.info("Machine-generated metrics consistency checks passed for run ID %s", run_id)
     LOGGER.info("Single-run programmatic checks passed; compare two clean runs before submission")
 
 

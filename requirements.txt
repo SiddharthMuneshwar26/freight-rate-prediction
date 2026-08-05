@@ -4,5 +4,4 @@ scikit-learn==1.9.0
 matplotlib==3.11.1
 catboost==1.2.10
 joblib==1.5.3
-reportlab==4.5.1
 threadpoolctl==3.6.0

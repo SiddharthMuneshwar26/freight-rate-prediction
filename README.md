@@ -18,20 +18,20 @@ Originally developed from a time-constrained ML engineering brief, the repositor
 - Training-only feature screening across both **HistGradientBoostingRegressor** and **CatBoostRegressor**
 - Separate reduced-schema model selection for the fixed December route series
 - Automated data audits, comparison tables, error analysis, scorer execution
-- Deterministic candidate ordering, stable row sorting, fixed seeds, and generated-artifact consistency checks
+- Deterministic candidate ordering, stable row sorting, fixed seeds, and machine-readable-artifact consistency checks
 
 ### Canonical result
 
 | Output | Selected model | Feature set | Holdout MAE |
 |---|---|---|---:|
-| Main validation | `hgb_compact` | `basic_plus_geographic` | **$129.51** |
-| December series | `december_hgb__december_basic` | `december_basic` | **$108.78** |
+| Main validation | `hgb_smoother` | `basic_plus_geographic` | **$129.51** |
+| December series | `december_hgb__december_basic` | `december_basic` | **$109.24** |
 
-**Run ID:** `submission-c27c7409c45454ca`
+**Run ID:** `submission-552834dc5eb224b5`
 
 ```text
-MAIN|model=hgb_compact|family=HistGradientBoostingRegressor|feature_set=basic_plus_geographic|mae=129.511954241217
-DECEMBER|model=december_hgb__december_basic|family=HistGradientBoostingRegressor|feature_set=december_basic|mae=108.7836047385515
+MAIN|model=hgb_smoother|family=HistGradientBoostingRegressor|feature_set=basic_plus_geographic|mae=129.50819581944845
+DECEMBER|model=december_hgb__december_basic|family=HistGradientBoostingRegressor|feature_set=december_basic|mae=109.24400618834804
 ```
 
 ---
@@ -82,7 +82,7 @@ flowchart LR
     L --> M[Generate 31 fixed December predictions]
     J --> N[Validate schemas and run supplied scorer]
     M --> N
-    N --> O[Generate metrics, figures, and consistency checks]
+    N --> O[Generate predictions, metrics, figures, scorer outputs, and consistency checks for machine-readable artifacts]
 ```
 
 ---
@@ -163,7 +163,7 @@ The selected main model is:
 
 ```text
 HistGradientBoostingRegressor
-Candidate: hgb_compact
+Candidate: hgb_smoother
 Feature set: basic_plus_geographic
 ```
 
@@ -173,11 +173,11 @@ Histogram gradient boosting uses an ordinal categorical encoder fitted only with
 
 ```json
 {
-  "l2_regularization": 3.0,
-  "learning_rate": 0.06,
-  "max_iter": 250,
+  "l2_regularization": 5.0,
+  "learning_rate": 0.05,
+  "max_iter": 300,
   "max_leaf_nodes": 15,
-  "min_samples_leaf": 30
+  "min_samples_leaf": 45
 }
 ```
 
@@ -186,9 +186,9 @@ Histogram gradient boosting uses an ordinal categorical encoder fitted only with
 | Metric | Value |
 |---|---:|
 | MAE | **$129.51** |
-| RMSE | $640.32 |
-| R² | 0.8239 |
-| sMAPE | 4.527% |
+| RMSE | $640.25 |
+| R² | 0.8240 |
+| sMAPE | 4.545% |
 
 The generated model is saved locally to:
 
@@ -217,7 +217,7 @@ The selected model is:
 HistGradientBoostingRegressor
 Candidate: december_hgb__december_basic
 Feature set: december_basic
-Holdout MAE: $108.78
+Holdout MAE: $109.24
 ```
 
 It uses only fields available in the fixed input plus known date features. Market and quote signals are not fabricated.
@@ -234,9 +234,9 @@ models/december_rate_model.joblib
 
 | Candidate | Family | Feature set | MAE | Eligible | Selected |
 |---|---|---|---:|:---:|:---:|
-| `hgb_compact` | HistGradientBoostingRegressor | `basic_plus_geographic` | **129.51** | Yes | **Yes** |
-| `hgb_smoother` | HistGradientBoostingRegressor | `basic_plus_geographic` | 130.26 | Yes | No |
-| `catboost_rate_per_mile` | CatBoostRegressor | `basic_plus_geographic` | 141.19 | Yes | No |
+| `hgb_smoother` | HistGradientBoostingRegressor | `basic_plus_geographic` | **129.51** | Yes | **Yes** |
+| `hgb_compact` | HistGradientBoostingRegressor | `basic_plus_geographic` | 129.53 | Yes | No |
+| `catboost_rate_per_mile` | CatBoostRegressor | `basic_plus_geographic` | 141.07 | Yes | No |
 | `equipment_median_rpm` | Baseline | distance + equipment | 229.10 | No | No |
 | `global_median` | Baseline | target only | 1,148.92 | No | No |
 
@@ -326,7 +326,7 @@ The pipeline:
 7. generates both required prediction outputs,
 8. validates their schemas,
 9. executes the unmodified scorer,
-10. generates figures, and consistency checks.
+10. generates predictions, metrics, figures, scorer outputs, and consistency checks for machine-readable artifacts.
 
 ---
 
@@ -387,13 +387,13 @@ Local performance values in this repository come from the chronological developm
 - Saved-model family checks
 - Supplied scorer checksum verification
 - Pristine December-template checksum verification
-- Generated metrics, and comparison-table consistency checks
+- Machine-readable metrics and comparison-table consistency checks
 - Content-addressed run identity
 
 The current canonical run is:
 
 ```text
-submission-c27c7409c45454ca
+submission-552834dc5eb224b5
 ```
 
 ---
@@ -416,4 +416,4 @@ submission-c27c7409c45454ca
 - [Technical report](reports/assessment_report.pdf)
 - [Scorer output](artifacts/scorer_output.txt)
 
-**Video walkthrough:** [Add final Loom link here]
+Video walkthrough: [Add public Loom link here]

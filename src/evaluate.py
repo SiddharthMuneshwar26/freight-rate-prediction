@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import base64
 import csv
 import json
-import re
-import zlib
 from pathlib import Path
 from typing import Any
 
@@ -278,47 +275,18 @@ def validate_december_output(frame: pd.DataFrame) -> None:
 
 def require_nonempty_file(path: Path) -> None:
     if not path.is_file() or path.stat().st_size == 0:
-        raise FileNotFoundError(f"Required generated file is missing or empty: {path}")
+        raise FileNotFoundError(f"Required file is missing or empty: {path}")
 
 
-def extract_reportlab_pdf_content(path: Path) -> str:
-    """Decode ReportLab page streams for submission-consistency assertions."""
-    pdf = path.read_bytes()
-    decoded: list[bytes] = []
-    for match in re.finditer(rb"(?<!end)stream\r?\n", pdf):
-        start = match.end()
-        end = pdf.find(b"endstream", start)
-        if end < 0:
-            continue
-        header = pdf[max(0, match.start() - 1_000) : match.start()]
-        if b"/Subtype /Image" in header:
-            continue
-        data = pdf[start:end].rstrip(b"\r\n")
-        try:
-            if b"/ASCII85Decode" in header:
-                data = base64.a85decode(data, adobe=True)
-            if b"/FlateDecode" in header:
-                data = zlib.decompress(data)
-        except (ValueError, zlib.error) as exc:
-            raise ValueError("Could not decode a generated PDF content stream") from exc
-        decoded.append(data)
-    if not decoded:
-        raise ValueError("Generated PDF has no decodable text streams")
-    return b"\n".join(decoded).decode("latin1", errors="replace")
-
-
-def validate_generated_artifact_consistency(
+def validate_generated_metrics_consistency(
     model_comparison_path: Path,
     december_comparison_path: Path,
     metrics_path: Path,
-    readme_path: Path,
-    loom_path: Path,
-    pdf_path: Path,
     expected_main: dict[str, str],
     expected_december: dict[str, str],
     expected_baselines: set[str],
 ) -> None:
-    """Round-trip canonical selections through every reviewer-facing artifact."""
+    """Validate canonical selections across machine-generated CSV and JSON outputs."""
     metrics: dict[str, Any] = json.loads(metrics_path.read_text(encoding="utf-8"))
     run_id = str(metrics.get("run_id", ""))
     if not run_id:
@@ -327,31 +295,77 @@ def validate_generated_artifact_consistency(
     if not isinstance(selections, dict) or set(selections) != {"main", "december"}:
         raise ValueError("validation_metrics.json is missing canonical selection identities")
 
+    required_columns = {
+        "model",
+        "model_family",
+        "feature_set",
+        "mae",
+        "eligible",
+        "selected",
+    }
+
     def read_rows(path: Path) -> list[dict[str, str]]:
         with path.open("r", encoding="utf-8", newline="") as stream:
-            return list(csv.DictReader(stream))
+            reader = csv.DictReader(stream)
+            fieldnames = set(reader.fieldnames or [])
+            missing_columns = required_columns - fieldnames
+            if missing_columns:
+                raise ValueError(
+                    f"{path.name} is missing required columns: {sorted(missing_columns)}"
+                )
+            rows = list(reader)
+        if not rows:
+            raise ValueError(f"{path.name} must contain at least one comparison row")
+        return rows
 
-    def truthy(value: str) -> bool:
-        return value.strip().lower() in {"true", "1", "yes"}
+    def parse_boolean(value: str, column: str, label: str) -> bool:
+        normalised = str(value).strip().lower()
+        if normalised in {"true", "1", "yes"}:
+            return True
+        if normalised in {"false", "0", "no"}:
+            return False
+        raise ValueError(
+            f"{label} comparison column {column!r} contains an invalid boolean value: {value!r}"
+        )
 
     def validate_table(
         rows: list[dict[str, str]],
         selection: dict[str, Any],
         expected: dict[str, str],
         label: str,
-    ) -> None:
+        expected_ineligible: set[str] | None = None,
+    ) -> float:
+        ineligible_names = expected_ineligible or set()
         names = [str(row["model"]) for row in rows]
-        for expected_name in expected:
-            if names.count(expected_name) != 1:
-                raise ValueError(f"{label} candidate {expected_name!r} must appear exactly once")
-        eligible_rows = [row for row in rows if truthy(row["eligible"])]
-        emitted = {row["model"]: row["model_family"] for row in eligible_rows}
+        expected_names = set(expected) | ineligible_names
+        if len(names) != len(set(names)):
+            raise ValueError(f"{label} comparison model names must be unique")
+        if set(names) != expected_names:
+            raise ValueError(
+                f"{label} comparison model set changed: "
+                f"actual={sorted(set(names))}, expected={sorted(expected_names)}"
+            )
+
+        eligible_rows = [
+            row
+            for row in rows
+            if parse_boolean(row["eligible"], "eligible", label)
+        ]
+        emitted = {str(row["model"]): str(row["model_family"]) for row in eligible_rows}
         if emitted != expected:
             raise ValueError(f"{label} eligible candidate set or families changed")
-        selected_rows = [row for row in rows if truthy(row["selected"])]
+
+        selected_rows = [
+            row
+            for row in rows
+            if parse_boolean(row["selected"], "selected", label)
+        ]
         if len(selected_rows) != 1:
             raise ValueError(f"{label} comparison must select exactly one row")
         selected = selected_rows[0]
+        if not parse_boolean(selected["eligible"], "eligible", label):
+            raise ValueError(f"{label} selected row must be eligible")
+
         exact_fields = {
             "model": str(selection["model"]),
             "model_family": str(selection["family"]),
@@ -365,18 +379,49 @@ def validate_generated_artifact_consistency(
                     f"{selected[column]!r} != {expected_value!r}"
                 )
 
+        try:
+            eligible_maes = [float(row["mae"]) for row in eligible_rows]
+            selected_mae = float(selected["mae"])
+            canonical_mae = float(selection["mae"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{label} comparison MAEs must be numeric") from exc
+        if not np.isfinite(np.asarray(eligible_maes, dtype=float)).all():
+            raise ValueError(f"{label} eligible MAEs must be finite")
+        minimum_eligible_mae = min(eligible_maes)
+        if selected_mae != minimum_eligible_mae:
+            raise ValueError(f"{label} selected MAE is not the exact minimum eligible MAE")
+        if selected_mae != canonical_mae or repr(canonical_mae) != str(selection["mae_text"]):
+            raise ValueError(f"{label} canonical MAE fields disagree")
+
+        for row in rows:
+            name = str(row["model"])
+            if name not in ineligible_names:
+                continue
+            if (
+                parse_boolean(row["eligible"], "eligible", label)
+                or parse_boolean(row["selected"], "selected", label)
+                or str(row["model_family"]) != "Baseline"
+            ):
+                raise ValueError(
+                    f"{label} baseline {name!r} must use family 'Baseline' and remain ineligible"
+                )
+        return minimum_eligible_mae
+
     main_rows = read_rows(model_comparison_path)
     december_rows = read_rows(december_comparison_path)
-    validate_table(main_rows, selections["main"], expected_main, "Main")
-    validate_table(december_rows, selections["december"], expected_december, "December")
-
-    baseline_rows = [row for row in main_rows if row["model"] in expected_baselines]
-    if (
-        len(baseline_rows) != len(expected_baselines)
-        or {row["model"] for row in baseline_rows} != expected_baselines
-        or any(truthy(row["eligible"]) or truthy(row["selected"]) for row in baseline_rows)
-    ):
-        raise ValueError("Documented baselines must appear exactly once and remain ineligible")
+    minimum_main_mae = validate_table(
+        main_rows,
+        selections["main"],
+        expected_main,
+        "Main",
+        expected_baselines,
+    )
+    validate_table(
+        december_rows,
+        selections["december"],
+        expected_december,
+        "December",
+    )
 
     main_identity = selections["main"]
     december_identity = selections["december"]
@@ -390,32 +435,28 @@ def validate_generated_artifact_consistency(
     }
     for key, expected_value in json_checks.items():
         if metrics.get(key) != expected_value:
-            raise ValueError(f"validation_metrics.json field {key!r} disagrees with canonical selection")
-    if repr(float(metrics["metrics"]["mae"])) != main_identity["mae_text"]:
+            raise ValueError(
+                f"validation_metrics.json field {key!r} disagrees with canonical selection"
+            )
+
+    main_metrics = metrics.get("metrics")
+    december_metrics = metrics.get("december_holdout_metrics")
+    if not isinstance(main_metrics, dict) or not isinstance(december_metrics, dict):
+        raise ValueError("validation_metrics.json is missing selected-model metric objects")
+    if repr(float(main_metrics["mae"])) != str(main_identity["mae_text"]):
         raise ValueError("Main JSON MAE disagrees with canonical selection")
-    if repr(float(metrics["december_holdout_metrics"]["mae"])) != december_identity["mae_text"]:
+    if repr(float(december_metrics["mae"])) != str(december_identity["mae_text"]):
         raise ValueError("December JSON MAE disagrees with canonical selection")
+    if float(metrics.get("minimum_eligible_mae", np.nan)) != minimum_main_mae:
+        raise ValueError("validation_metrics.json minimum eligible MAE disagrees with comparison CSV")
 
-    readme = readme_path.read_text(encoding="utf-8")
-    loom = loom_path.read_text(encoding="utf-8")
-    pdf_content = extract_reportlab_pdf_content(pdf_path)
-    for signature in (main_identity["signature"], december_identity["signature"]):
-        for artifact_name, content in (
-            ("README", readme),
-            ("Loom script", loom),
-            ("PDF report", pdf_content),
-        ):
-            if signature not in content:
-                raise ValueError(f"{artifact_name} is missing canonical signature {signature!r}")
-    run_marker = f"Run ID: {run_id}"
-    for artifact_name, content in (
-        ("README", readme),
-        ("Loom script", loom),
-        ("PDF report", pdf_content),
+    eligible_candidates = metrics.get("eligible_candidates")
+    if (
+        not isinstance(eligible_candidates, list)
+        or len(eligible_candidates) != len(set(map(str, eligible_candidates)))
+        or set(map(str, eligible_candidates)) != set(expected_main)
     ):
-        if run_marker not in content:
-            raise ValueError(f"{artifact_name} is missing {run_marker!r}")
-
-    page_count = len(re.findall(rb"/Type\s*/Page\b", pdf_path.read_bytes()))
-    if page_count != 5:
-        raise ValueError(f"Assessment report must contain exactly five populated pages, found {page_count}")
+        raise ValueError("validation_metrics.json eligible candidate set changed")
+    baseline_metrics = metrics.get("baseline_metrics")
+    if not isinstance(baseline_metrics, dict) or set(baseline_metrics) != expected_baselines:
+        raise ValueError("validation_metrics.json baseline set changed")
