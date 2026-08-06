@@ -427,4 +427,4 @@ Local performance values in this repository come from the chronological developm
 - [Scorer output](artifacts/scorer_output.txt)
 - [Original project brief](freight-rate-ml-assessment.pdf)
 
-**Video walkthrough:** [Add public Loom link here]
+**Video walkthrough:** https://www.loom.com/share/2fc4bacd8bf548e89594412b867cecd1
