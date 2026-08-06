@@ -1,5 +1,3 @@
-"""Leakage-safe cleaning and focused freight feature engineering."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -133,9 +131,6 @@ FEATURE_SETS: dict[str, list[str]] = {
     + INTERACTION_FEATURES,
 }
 
-# HistGradientBoosting supports at most 255 values per categorical feature. These
-# sets retain route information through endpoints/frequencies instead of feeding
-# thousands of route strings as ordinal categories.
 HGB_ROUTE_FEATURES = [
     "pickup",
     "delivery",
