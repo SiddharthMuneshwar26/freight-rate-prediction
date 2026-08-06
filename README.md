@@ -24,8 +24,8 @@ Originally developed from a time-constrained ML engineering brief, the repositor
 
 | Output | Selected model | Feature set | Validation MAE |
 |---|---|---|---:|
-| Main validation | `hgb_smoother` | `basic_plus_geographic` | **$129.51** |
-| December scenario | `december_hgb__december_basic` | `december_basic` | **$109.24** |
+| Main validation | `hgb_compact` | `basic_plus_geographic` | **$129.51** |
+| December scenario | `december_hgb__december_basic` | `december_basic` | **$108.78** |
 
 The values above are chronological model-selection validation scores. They are not metrics from the unlabeled final-validation set.
 
@@ -159,7 +159,7 @@ The selected main model is:
 
 ```text
 HistGradientBoostingRegressor
-Candidate: hgb_smoother
+Candidate: hgb_compact
 Feature set: basic_plus_geographic
 ```
 
@@ -169,11 +169,11 @@ Histogram gradient boosting uses an ordinal categorical encoder fitted only with
 
 ```json
 {
-  "l2_regularization": 5.0,
-  "learning_rate": 0.05,
-  "max_iter": 300,
+  "l2_regularization": 3.0,
+  "learning_rate": 0.06,
+  "max_iter": 250,
   "max_leaf_nodes": 15,
-  "min_samples_leaf": 45
+  "min_samples_leaf": 30
 }
 ```
 
@@ -182,9 +182,9 @@ Histogram gradient boosting uses an ordinal categorical encoder fitted only with
 | Metric | Value |
 |---|---:|
 | MAE | **$129.51** |
-| RMSE | $640.25 |
-| R² | 0.8240 |
-| sMAPE | 4.545% |
+| RMSE | $640.32 |
+| R² | 0.8239 |
+| sMAPE | 4.527% |
 
 ### Saved inference artifacts
 
@@ -216,7 +216,7 @@ The selected model is:
 HistGradientBoostingRegressor
 Candidate: december_hgb__december_basic
 Feature set: december_basic
-Holdout MAE: $109.24
+Holdout MAE: $108.78
 ```
 
 It uses only fields available in the fixed input plus known date features. Market and quote signals are not fabricated.
@@ -236,8 +236,8 @@ models/december_rate_model.joblib
 
 | Candidate | Family | Feature set | MAE | Eligible | Selected |
 |---|---|---|---:|:---:|:---:|
-| `hgb_smoother` | HistGradientBoostingRegressor | `basic_plus_geographic` | **129.51** | Yes | **Yes** |
-| `hgb_compact` | HistGradientBoostingRegressor | `basic_plus_geographic` | 129.53 | Yes | No |
+| `hgb_compact` | HistGradientBoostingRegressor | `basic_plus_geographic` | **129.51** | Yes | **Yes** |
+| `hgb_smoother` | HistGradientBoostingRegressor | `basic_plus_geographic` | 130.26 | Yes | No |
 | `catboost_rate_per_mile` | CatBoostRegressor | `basic_plus_geographic` | 141.07 | Yes | No |
 | `equipment_median_rpm` | Baseline | distance + equipment | 229.10 | No | No |
 | `global_median` | Baseline | target only | 1,148.92 | No | No |
