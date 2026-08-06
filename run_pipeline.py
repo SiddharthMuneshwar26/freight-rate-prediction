@@ -1,5 +1,3 @@
-"""Reproduce the freight-rate assessment from raw inputs through scoring."""
-
 from __future__ import annotations
 
 import hashlib
@@ -15,8 +13,6 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
-# HGB uses OpenMP internally. Constraining every numerical backend before
-# importing NumPy/sklearn prevents thread-reduction order from changing splits.
 for thread_variable in (
     "OMP_NUM_THREADS",
     "MKL_NUM_THREADS",
